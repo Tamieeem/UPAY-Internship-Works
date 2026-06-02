@@ -21,7 +21,7 @@ class User(AbstractUser):
     update_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = "phone"
-    REQUIRED_FIELDS = ["email", "phone"]
+    REQUIRED_FIELDS = ["email", "raw_phone_number"]
     class Meta:
         db_table = "users"
         indexes = [
@@ -41,7 +41,7 @@ class UserProfile(TimeStampedModel):
     Keeps the User model lean. Holds supplementary personal/KYC data.
     '''
     user = models.OneToOneField(
-        User,
+        "users.User",
         on_delete=models.CASCADE,
         related_name="profile",
     )
