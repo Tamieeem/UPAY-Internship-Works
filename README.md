@@ -12,6 +12,8 @@ A backend-focused fintech simulation project built with Django ORM to practice r
 - Merchant model for transaction categorization
 - Advanced Django ORM queries
 
-![Sample Query Outputs](./ORM_Query_Screenshots/Screenshot from 2026-06-04 14-52-06.png)
-![Sample Query Outputs](./ORM_Query_Screenshots/ORM_Query_Screenshots/Screenshot from 2026-06-04 14-52-36.png)
-![Sample Query Outputs](./ORM_Query_Screenshots/ORM_Query_Screenshots/Screenshot from 2026-06-04 14-53-17.png)
+![Sample Query Outputs](./ORM_Query_Screenshots/Screenshots1.png)
+
+![Sample Query Outputs](./ORM_Query_Screenshots/Screenshots2.png)
+
+![Sample Query Outputs](./ORM_Query_Screenshots/Screenshots3.png)
