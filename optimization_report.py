@@ -1,17 +1,8 @@
 """
-optimization_report.py — Before/after query analysis for 3 patterns.
-
 What this script does:
     Runs the same data fetch two ways — naive and optimized.
     Measures how many SQL queries fired and how long they took.
     Prints a clear before/after report for each pattern.
-
-Run with:
-    python manage.py shell < optimization_report.py
-
-Requirements:
-    - DEBUG = True in settings.py  (Django only logs queries in debug mode)
-    - Seeds have been run          (python manage.py shell < seeds.py)
 """
 
 import os
