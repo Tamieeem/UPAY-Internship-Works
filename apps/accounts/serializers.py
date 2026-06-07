@@ -15,7 +15,7 @@ class AccountSerializer(serializers.ModelSerializer):
         
         read_only_fields = [
             'id',
-            'user',
+            # 'user',
             'balance',
             'status'
         ]
@@ -34,9 +34,9 @@ class TransactionSerializer(serializers.ModelSerializer):
             "status",
             "reversal_of",
         ]
-    read_only_fields = [
+        read_only_fields = [
         'id',
         'reference_id',
         'status',
         'reversal_of'
-    ]
+        ]

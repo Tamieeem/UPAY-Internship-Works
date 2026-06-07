@@ -30,7 +30,7 @@ class AccountAPIView(APIView):
     
     def post(self, request):
         serializer = AccountSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True):
+        serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
         
@@ -45,7 +45,32 @@ class AccountAPIView(APIView):
         temp = account.account_number
         account.delete()
         return Response({"message": f"successfully deleted {temp}."},
-            status=status.HTTP_200_ok)
+            status=status.HTTP_200_OK)
+
+#GenericAPIview + Mixin
+#this is easiest and cleanest version
+#this is used only if we have no custom logics
+#as it already provides the CRUD operations with simple, plain requirements
+#not versatile as APIView for large scale systems
+    
+
+class accountGenericView(GenericAPIView,CreateModelMixin,ListModelMixin,RetrieveModelMixin,UpdateModelMixin,DestroyModelMixin):
+    queryset=Account.objects.all()
+    serializer_class=AccountSerializer
+    lookup_field = "id"
+    
+    def get(self, request, id=None):
+        if id:
+            return self.retrieve(request, id=id)
+        return self.list(request)
+    def post(self, request):
+        return self.create(request)
+    
+    def patch(self, request, id):
+        return self.partial_update(request)
+    
+    def delete(self, request, id):
+        return self.destroy(request)
 
 
 #ModelViewSet 
@@ -82,27 +107,3 @@ class AccountModelViewSet(viewsets.ModelViewSet):
         account.save(update_fields=["status"]) 
         return Response(AccountSerializer(account).data)
     
-#GenericAPIview + Mixin
-#this is easiest and cleanest version
-#this is used only if we have no custom logics
-#as it already provides the CRUD operations with simple, plain requirements
-#not versatile as APIView for large scale systems
-    
-
-class accountGenericView(GenericAPIView,CreateModelMixin,ListModelMixin,RetrieveModelMixin,UpdateModelMixin,DestroyModelMixin):
-    queryset=Account.objects.all()
-    serializer_class=AccountSerializer
-    
-    def get(self, request, id=None):
-        if id:
-            return self.retrieve(request, id=id)
-        return self.list(request)
-    def post(self, request):
-        return self.create(request)
-    
-    def patch(self, request, id):
-        return self.partial_update(request, id)
-    
-    def delete(self, request, id):
-        return self.destroy(request, id)
-
