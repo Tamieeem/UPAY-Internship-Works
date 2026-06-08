@@ -77,3 +77,29 @@ class Transaction(models.Model):
             f"[{self.status}] {self.get_transaction_type_display()} | "
             f"{self.amount} | ref: {self.reference_id}"
         )
+
+class TransactionLog(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    original_transaction = models.ForeignKey(
+        Transaction, on_delete=models.PROTECT, related_name="logs", null=True, blank=True)
+
+    reversal_of = models.OneToOneField(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reversed_by",
+    )
+    action = models.CharField(max_length=10)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.action} on {self.original_transaction_id} @ {self.created_at}"
