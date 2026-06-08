@@ -1,12 +1,15 @@
 from rest_framework.views import APIView
-from .models import Account
+from .models import Account, Transaction, TransactionLog
 from rest_framework.response import Response
-from .serializers import AccountSerializer
+from .serializers import AccountSerializer, TransactionSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from utils.choices import AccountStatus
+from utils.choices import AccountStatus, TransactionStatus
+from django.db import transaction
+from rest_framework.permissions import IsAuthenticated
+
 
 #GenericAPIView + mixin Imports
 from rest_framework.generics import GenericAPIView
@@ -106,4 +109,50 @@ class AccountModelViewSet(viewsets.ModelViewSet):
         #change the status field in db
         account.save(update_fields=["status"]) 
         return Response(AccountSerializer(account).data)
+
+#TransactionModelViewSet
+#refund-- custom action
+
+class TransactionModelViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Transaction.objects.all()
+    serializer_class = TransactionSerializer
     
+    @action(detail=True, methods=["post"])
+    def refund(self, request, pk=None):
+        original = self.get_object()
+        
+        #check if transaction is already refunded, if yes, client gets 400 error message.
+        if original.status == TransactionStatus.REFUNDED:
+            return Response(
+                {"detail": "Can't Refund a Already REFUNDED transaction"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if original.status != TransactionStatus.COMPLETED:
+            return Response(
+                {"detail": "No amount was transferred, Refund not applicable"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        with transaction.atomic():
+            refund_creation = Transaction.objects.create(
+                from_account = original.to_account,
+                to_account = original.from_account,
+                amount = original.amount,
+                status = TransactionStatus.COMPLETED,
+                reversal_of = original,
+            )
+            #must change original transaction status to avoid multi-refund
+            original.status = TransactionStatus.REFUNDED
+            original.save(update_fields=["status"])
+            
+            #audit log
+            TransactionLog.objects.create(
+                original_transaction = original,
+                action = "REFUND",
+                #which user got the refund
+                actor = request.user,
+            )
+        return Response(
+            TransactionSerializer(refund_creation).data,
+            status=status.HTTP_201_CREATED
+        )
