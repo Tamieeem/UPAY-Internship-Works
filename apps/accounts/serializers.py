@@ -37,6 +37,6 @@ class TransactionSerializer(serializers.ModelSerializer):
         read_only_fields = [
         'id',
         'reference_id',
-        'status',
+        # 'status',
         'reversal_of'
         ]
