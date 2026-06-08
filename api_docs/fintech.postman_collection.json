@@ -208,6 +208,99 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "new account post",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "create transaction",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \n    \"from_account\": \"630a55b2-f65a-4bac-825c-b8d000f5a1b0\", \n    \"to_account\": \"c33283a5-5fbf-43c2-be08-569927a00d26\",\n    \"amount\": \"50.00\",\n    \"transaction_type\": \"TRANSFER\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/v1/transactions/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "api",
+            "v1",
+            "transactions",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "refund",
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "password",
+              "value": "tamim",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "tamim",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \n    \"from_account\": \"c33283a5-5fbf-43c2-be08-569927a00d26\", \n    \"to_account\": \"630a55b2-f65a-4bac-825c-b8d000f5a1b0\",\n    \"amount\": \"50.00\",\n    \"transaction_type\": \"TRANSFER\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/v1/transactions/ac33d58a-467b-469e-921c-1f9e14d7608d/refund/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "api",
+            "v1",
+            "transactions",
+            "ac33d58a-467b-469e-921c-1f9e14d7608d",
+            "refund",
+            ""
+          ]
+        }
+      },
+      "response": []
     }
   ]
 }
