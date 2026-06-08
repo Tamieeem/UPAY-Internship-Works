@@ -42,7 +42,7 @@ class TransactionStatus(models.TextChoices):
     PENDING   = "PENDING",   "Pending"
     COMPLETED = "COMPLETED", "Completed"
     FAILED    = "FAILED",    "Failed"
-    REVERSED  = "REVERSED",  "Reversed"
+    REFUNDED  = "REFUNDED",  "Refunded"
 
 
 # class MerchantCategory(models.TextChoices):
