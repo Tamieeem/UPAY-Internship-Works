@@ -50,6 +50,55 @@ class AccountAPIView(APIView):
         return Response({"message": f"successfully deleted {temp}."},
             status=status.HTTP_200_OK)
 
+#Refund using APIView.
+class TransactionRefundAPIView(APIView):
+    """
+        Refund a transaction logic using APIView. Uses post()
+        instead of action method. Manual object fetching as
+        it's how the APIView works.
+    """
+    permission_classes = [IsAuthenticated]
+    def post(self, request, id=None):
+        original = get_object_or_404(Transaction, id=id)
+        
+        #check if transaction is already refunded, if yes, client gets 400 error message.
+        if original.status == TransactionStatus.REFUNDED:
+            return Response(
+                {"detail": "Can't Refund a Already REFUNDED transaction"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if original.status != TransactionStatus.COMPLETED:
+            return Response(
+                {"detail": "No amount was transferred, Refund not applicable"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        with transaction.atomic():
+            refund_creation = Transaction.objects.create(
+                from_account = original.to_account,
+                to_account = original.from_account,
+                amount = original.amount,
+                status = TransactionStatus.COMPLETED,
+                reversal_of = original,
+            )
+            #must change original transaction status to avoid multi-refund
+            original.status = TransactionStatus.REFUNDED
+            original.save(update_fields=["status"])
+            
+            #audit log
+            TransactionLog.objects.create(
+                original_transaction = original,
+                action = "REFUND",
+                #which user got the refund
+                actor = request.user,
+            )
+        return Response(
+            TransactionSerializer(refund_creation, context={'request': request}).data,
+            status=status.HTTP_201_CREATED
+        )
+
+
+
+
 #GenericAPIview + Mixin
 #this is easiest and cleanest version
 #this is used only if we have no custom logics
