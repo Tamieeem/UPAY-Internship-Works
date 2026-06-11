@@ -9,7 +9,7 @@ from rest_framework.decorators import action
 from utils.choices import AccountStatus, TransactionStatus
 from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
-
+from django.db.models import Q
 
 #GenericAPIView + mixin Imports
 from rest_framework.generics import GenericAPIView
@@ -23,31 +23,34 @@ class AccountAPIView(APIView):
         
         if id:
             #if api enpoint requests one account detail
-            account = get_object_or_404(Account, id=id)
+            account = get_object_or_404(Account, id=id, user=request.user)
             serializer = AccountSerializer(account)
             return Response(serializer.data)
         #otherwise return list of accounts
-        account = Account.objects.all()
-        serializer = AccountSerializer(account,many = True)
+        account = Account.objects.filter(user=request.user)
+        serializer = AccountSerializer(account, many = True)
         return Response(serializer.data)
+    
     
     def post(self, request):
         serializer = AccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        # serializer.save()
+        serializer.save(user=request.user)
         return Response(serializer.data)
         
     def patch(self, request, id):
-        account = get_object_or_404(Account, id=id)
+        account = get_object_or_404(Account, id=id, user=request.user)
         serializer = AccountSerializer(account, data=request.data, partial = True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+    
     def delete(self, request, id):
-        account = get_object_or_404(Account, id=id)
-        temp = account.account_number
+        account = get_object_or_404(Account, id=id, user=request.user)
+        deleted_account = account.account_number
         account.delete()
-        return Response({"message": f"successfully deleted {temp}."},
+        return Response({"message": f"successfully deleted {deleted_account}."},
             status=status.HTTP_200_OK)
 
 #Refund using APIView.
@@ -59,7 +62,8 @@ class TransactionRefundAPIView(APIView):
     """
     permission_classes = [IsAuthenticated]
     def post(self, request, id=None):
-        original = get_object_or_404(Transaction, id=id)
+        original = get_object_or_404(Transaction.objects.filter(
+            Q(from_account__user=request.user) | Q(to_account__user=request.user)), id=id)
         
         #check if transaction is already refunded, if yes, client gets 400 error message.
         if original.status == TransactionStatus.REFUNDED:
@@ -96,6 +100,17 @@ class TransactionRefundAPIView(APIView):
             status=status.HTTP_201_CREATED
         )
 
+#Freeze with APIView
+class AccountFreezeAPIView(APIView):
+    """POST /api/v1/raw/accounts/{id}/freeze/ — APIView twin of the ViewSet's freeze action."""
+    def post(self, request, id=None):
+        account = get_object_or_404(Account, id=id, user=request.user)
+        if account.status == AccountStatus.CLOSED:
+            return Response({"detail": "Cannot freeze a closed account."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        account.status = AccountStatus.FROZEN
+        account.save(update_fields=["status"])
+        return Response(AccountSerializer(account).data)
 
 
 
@@ -110,6 +125,9 @@ class accountGenericView(GenericAPIView,CreateModelMixin,ListModelMixin,Retrieve
     queryset=Account.objects.all()
     serializer_class=AccountSerializer
     lookup_field = "id"
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
     
     def get(self, request, id=None):
         if id:
@@ -133,8 +151,14 @@ class accountGenericView(GenericAPIView,CreateModelMixin,ListModelMixin,Retrieve
 #only useful when requirements are simple, less custom logic, only simple-plain requirements.
 
 class AccountModelViewSet(viewsets.ModelViewSet):
-    queryset = Account.objects.all()
     serializer_class = AccountSerializer
+    
+    def perform_create(self, serializer):
+    # the owner comes from the authenticated request, never the client payload
+        serializer.save(user=self.request.user)
+        
+    def get_queryset(self):
+        return Account.objects.filter(user=self.request.user)
 
     @action(detail=True, methods=["post"])
     def freeze(self, request, pk=None):
@@ -164,9 +188,14 @@ class AccountModelViewSet(viewsets.ModelViewSet):
 
 class TransactionModelViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
+    def get_queryset(self):
+        user = self.request.user
+        return Transaction.objects.filter(
+            Q(from_account__user=user) | Q(to_account__user=user)
+        )
     
+
     @action(detail=True, methods=["post"])
     def refund(self, request, pk=None):
         original = self.get_object()
