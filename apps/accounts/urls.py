@@ -5,7 +5,8 @@ from .views import (
     accountGenericView,
     AccountModelViewSet,
     TransactionModelViewSet,
-    TransactionRefundAPIView
+    TransactionRefundAPIView,
+    AccountFreezeAPIView
 )
 
 router = DefaultRouter()
@@ -14,7 +15,8 @@ router.register('transactions', TransactionModelViewSet, basename="transaction")
 
 urlpatterns = [
     path('api/v1/raw/accounts/', AccountAPIView.as_view()),
-    #for patch/delete apiview - same url 
+    #for patch/delete apiview - same url
+    path('api/v1/raw/accounts/<uuid:id>/freeze/', AccountFreezeAPIView.as_view()),
     path('api/v1/raw/accounts/<uuid:id>/', AccountAPIView.as_view()),
     path('api/v1/raw/transactions/<uuid:id>/refund/', TransactionRefundAPIView.as_view()),
     
