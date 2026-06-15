@@ -103,6 +103,7 @@ class TransactionRefundAPIView(APIView):
 #Freeze with APIView
 class AccountFreezeAPIView(APIView):
     """POST /api/v1/raw/accounts/{id}/freeze/ — APIView twin of the ViewSet's freeze action."""
+    permission_classes = [IsAuthenticated]
     def post(self, request, id=None):
         account = get_object_or_404(Account, id=id, user=request.user)
         if account.status == AccountStatus.CLOSED:
