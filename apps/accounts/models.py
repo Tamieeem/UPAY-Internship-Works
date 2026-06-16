@@ -71,7 +71,9 @@ class Transaction(models.Model):
         choices=TransactionStatus.choices,
         default=TransactionStatus.PENDING,
     )
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    
     def __str__(self):
         return (
             f"[{self.status}] {self.get_transaction_type_display()} | "
