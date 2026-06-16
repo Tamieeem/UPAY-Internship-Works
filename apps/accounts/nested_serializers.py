@@ -34,6 +34,13 @@ class TransactionNestedSerializer(serializers.ModelSerializer):
         ]
 
 class TransactionWriteSerializer(serializers.ModelSerializer):
+    """
+        nested write- transaction serializer for writing in db, as drf will crash otherwise
+        as it doesn't offer this by default. the purpose of using this is
+        sort of like: creating profile while creating an account.
+        similarly, here it creates account while transaction then 
+        gets the account pk/uuid instead of re-hitting the GET accounts api.
+    """
     from_account = AccountNestedSerializer()
     to_account = AccountNestedSerializer()
     class Meta:
