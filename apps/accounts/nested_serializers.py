@@ -42,7 +42,11 @@ class TransactionWriteSerializer(serializers.ModelSerializer):
         gets the account pk/uuid instead of re-hitting the GET accounts api.
     """
     from_account = AccountNestedSerializer()
-    to_account = AccountNestedSerializer()
+    to_account = serializers.PrimaryKeyRelatedField(
+            queryset = Account.objects.all(),
+            required = False,
+            allow_null = True,
+        )
     class Meta:
         model = Transaction
         fields = ["id", "reference_id", "from_account", "to_account", "amount", "transaction_type", "status"]
@@ -51,14 +55,18 @@ class TransactionWriteSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         #accounts pop is must as account table doesnt have such field
         account_data = validated_data.pop("from_account")
-        to_data = validated_data.pop("to_account")
+        user = validated_data.pop("user")
+        
         with trx.atomic():
-            from_account = Account.objects.create(**account_data)    
-            to_account = Account.objects.create(**to_data)
+            from_account = Account.objects.create(
+                **account_data,
+                user=user,
+                )    
+            # to_account = Account.objects.create(**to_data)
             transaction = Transaction.objects.create(
                 from_account = from_account,
-                to_account = to_account,
+                # to_account = to_account,
                 **validated_data
             )
             
-            return transaction
+            return transaction      
