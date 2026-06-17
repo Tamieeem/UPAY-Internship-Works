@@ -10,6 +10,7 @@ from utils.choices import AccountStatus, TransactionStatus
 from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from .nested_serializers import TransactionWriteSerializer, TransactionNestedSerializer
 
 #GenericAPIView + mixin Imports
 from rest_framework.generics import GenericAPIView
@@ -234,4 +235,20 @@ class TransactionModelViewSet(viewsets.ModelViewSet):
         return Response(
             TransactionSerializer(refund_creation).data,
             status=status.HTTP_201_CREATED
+        )
+
+
+#nested write serializer test APIView
+class NestedTransactionCreateAPIView(APIView):
+    """
+        POST /api/v1/raw/transactions/create-nested/
+        transaction with account creation(from_account) at same time.
+    """
+    def post(self, request):
+        serializer = TransactionWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        transaction = serializer.save(user=request.user)
+        return Response(
+            TransactionNestedSerializer(transaction).data,
+            status=status.HTTP_201_CREATED,
         )
