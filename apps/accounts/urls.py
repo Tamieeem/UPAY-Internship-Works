@@ -6,7 +6,8 @@ from .views import (
     AccountModelViewSet,
     TransactionModelViewSet,
     TransactionRefundAPIView,
-    AccountFreezeAPIView
+    AccountFreezeAPIView,
+    NestedTransactionCreateAPIView
 )
 
 router = DefaultRouter()
@@ -19,6 +20,11 @@ urlpatterns = [
     path('api/v1/raw/accounts/<uuid:id>/freeze/', AccountFreezeAPIView.as_view()),
     path('api/v1/raw/accounts/<uuid:id>/', AccountAPIView.as_view()),
     path('api/v1/raw/transactions/<uuid:id>/refund/', TransactionRefundAPIView.as_view()),
+    
+    #nested write apiview endpoint
+    path('api/v1/raw/transactions/create-nested/', NestedTransactionCreateAPIView.as_view()),
+    
+    
     
     #generic apiviews urls
     path('api/v1/generic/accounts/', accountGenericView.as_view()),
