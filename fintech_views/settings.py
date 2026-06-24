@@ -40,6 +40,10 @@ INSTALLED_APPS = [
     
     #restframework
     'rest_framework',
+    #simplejwt
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    
     
     #apps
     'apps.accounts',
@@ -127,8 +131,28 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.BasicAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
+        
     ],
+}
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    #token lifespans
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+
+    #TURN ON ROTATION AND BLACKLISTING
+    #Gives a NEW refresh token when used
+    "ROTATE_REFRESH_TOKENS": True, 
+    # Instantly blacklists the OLD refresh token
+    "BLACKLIST_AFTER_ROTATION": True,  
+
+    "UPDATE_LAST_LOGIN": False,
+    "ALGORITHM": "HS256",
 }
