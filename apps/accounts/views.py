@@ -1,19 +1,23 @@
 from rest_framework.views import APIView
 from .models import Account, Transaction, TransactionLog
 from rest_framework.response import Response
-from .serializers import AccountSerializer, TransactionSerializer
+from .serializers import AccountSerializer, TransactionSerializer, RegisterUserSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from utils.choices import AccountStatus, TransactionStatus
 from django.db import transaction
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q
 from .nested_serializers import TransactionWriteSerializer, TransactionNestedSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+
+
 
 #GenericAPIView + mixin Imports
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import GenericAPIView, CreateAPIView
 from rest_framework.mixins import ListModelMixin,CreateModelMixin,DestroyModelMixin,RetrieveModelMixin,UpdateModelMixin
 
 
@@ -252,3 +256,71 @@ class NestedTransactionCreateAPIView(APIView):
             TransactionNestedSerializer(transaction).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+#register user
+class RegisterUserView(CreateAPIView):
+    '''
+        CreateAPIView for simply registering user without anything manual writing.
+        Allowany is crucial override as we can't enforce "authenticated" before
+        user is created or logged in. New user must have the permission to create
+        and login. So Allowany is used here.
+    '''
+    permission_classes = [AllowAny]
+    serializer_class = RegisterUserSerializer
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        return Response(
+            {
+                "success": True,
+                "message": "User registered successfully",
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                }
+            },
+            status=status.HTTP_201_CREATED
+        )
+        
+
+#logoutview - refresh token
+
+
+
+class LogoutView(APIView):
+    # IsAuthenticated: caller must present a valid ACCESS token to log out.
+    # That guarantees request.user exists — a known principal performing the action.
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        #Logout targets the REFRESH token.
+        #it just expires on its own in a few minutes. So the client sends us the
+        refresh_token = request.data.get("refresh")
+
+        # No token in the body = client mistake, not a server fault so clean 400.
+        if refresh_token is None:
+            return Response(
+                {"detail": "Refresh token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            token = RefreshToken(refresh_token)
+
+            #writes the token to the blacklist table. After this it can never be
+            # used for a new access token again.
+            token.blacklist()
+
+        except TokenError:
+            return Response(
+                {"detail": "Invalid or expired refresh token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 205 Reset Content = "discard your local state" (the client should drop
+        # both tokens now). 205 is the SimpleJWT convention.
+        return Response(status=status.HTTP_205_RESET_CONTENT)
