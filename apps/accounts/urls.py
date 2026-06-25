@@ -15,7 +15,10 @@ from .views import (
     TransactionRefundAPIView,
     AccountFreezeAPIView,
     NestedTransactionCreateAPIView,
-    LogoutView
+    LogoutView,
+    CustomTokenObtainPairView,
+    LoginSessionListView,
+    LoginSessionRevokeView
 )
 
 router = DefaultRouter()
@@ -28,11 +31,14 @@ urlpatterns = [
     path('api/v1/auth/token/', obtain_auth_token, name='drf-token'), #default drf token
     #jwt token
     
-    path('api/v1/auth/jwt/create/', TokenObtainPairView.as_view(), name='jwt-create'),
+    path("api/v1/auth/jwt/create/", CustomTokenObtainPairView.as_view(), name="jwt_create"),
     path('api/v1/auth/jwt/refresh/', TokenRefreshView.as_view(), name='jwt-refresh'),
     path('api/v1/auth/jwt/verify/', TokenVerifyView.as_view(), name='jwt-verify'),
     
     path("api/v1/auth/logout/", LogoutView.as_view(), name="logout"),
+
+    path("api/v1/auth/sessions/", LoginSessionListView.as_view(), name="session_list"),
+    path("api/v1/auth/sessions/<uuid:session_id>/revoke/", LoginSessionRevokeView.as_view(), name="session_revoke"),
 
     
     #views-api-endpoints
