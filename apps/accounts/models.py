@@ -105,3 +105,27 @@ class TransactionLog(models.Model):
     
     def __str__(self):
         return f"{self.action} on {self.original_transaction_id} @ {self.created_at}"
+    
+#session tracker
+class LoginSession(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="login_sessions",
+    )
+    #jti=unique id of the REFRESH token issued at this login.
+    #this is to makes the session revocable: to revoke, we find
+    #the outstanding token with this jti and blacklist it.
+    jti = models.CharField(max_length=255, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    #"revoke" flip a flag for display, separate from the actual blacklist.
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]   # newest sessions first in the list endpoint
+
+    def __str__(self):
+        return f"{self.user} @ {self.ip_address} ({self.created_at:%Y-%m-%d %H:%M})"

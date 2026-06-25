@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
-from .models import Account, Transaction, TransactionLog
+from .models import Account, Transaction, TransactionLog, LoginSession
 from rest_framework.response import Response
-from .serializers import AccountSerializer, TransactionSerializer, RegisterUserSerializer
+from .serializers import AccountSerializer, TransactionSerializer, RegisterUserSerializer, CustomTokenObtainPairSerializer, LoginSessionSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework import status, viewsets
@@ -13,11 +13,19 @@ from django.db.models import Q
 from .nested_serializers import TransactionWriteSerializer, TransactionNestedSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.token_blacklist.models import (
+    OutstandingToken,
+    BlacklistedToken,
+)
+from django.utils import timezone
+
 
 
 
 #GenericAPIView + mixin Imports
-from rest_framework.generics import GenericAPIView, CreateAPIView
+from rest_framework.generics import GenericAPIView, CreateAPIView, ListAPIView
 from rest_framework.mixins import ListModelMixin,CreateModelMixin,DestroyModelMixin,RetrieveModelMixin,UpdateModelMixin
 
 
@@ -34,6 +42,7 @@ class AccountAPIView(APIView):
         #otherwise return list of accounts
         account = Account.objects.filter(user=request.user)
         serializer = AccountSerializer(account, many = True)
+        print(request.auth.payload)   
         return Response(serializer.data)
     
     
@@ -324,3 +333,45 @@ class LogoutView(APIView):
         # 205 Reset Content = "discard your local state" (the client should drop
         # both tokens now). 205 is the SimpleJWT convention.
         return Response(status=status.HTTP_205_RESET_CONTENT)
+    
+    
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+#Login sessionview
+class LoginSessionListView(ListAPIView):
+    serializer_class = LoginSessionSerializer
+    permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        return LoginSession.objects.filter(user=self.request.user)
+
+class LoginSessionRevokeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, session_id):
+        # Scope the lookup to request.user — CRITICAL. Without user=request.user,
+        # a user could revoke SOMEONE ELSE'S session by guessing an id. This is
+        # the ownership check that stops cross-user revocation.
+        session = get_object_or_404(
+            LoginSession, id=session_id, user=request.user
+        )
+
+        # Find the outstanding refresh token by the jti we stored at login,
+        # then blacklist it. get_or_create on BlacklistedToken = idempotent:
+        # revoking an already-revoked session won't crash.
+        try:
+            outstanding = OutstandingToken.objects.get(jti=session.jti)
+            BlacklistedToken.objects.get_or_create(token=outstanding)
+        except OutstandingToken.DoesNotExist:
+            # Token aged out of the outstanding table (already expired). The
+            # session is effectively dead anyway — not an error, just mark it.
+            pass
+
+        # The display shadow: stamp revoked_at so the list reflects reality.
+        session.revoked_at = timezone.now()
+        session.save(update_fields=["revoked_at"])
+
+        return Response(
+            {"detail": "Session revoked."}, status=status.HTTP_200_OK
+        )
