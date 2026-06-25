@@ -156,3 +156,8 @@ SIMPLE_JWT = {
     "UPDATE_LAST_LOGIN": False,
     "ALGORITHM": "HS256",
 }
+
+AUTHENTICATION_BACKENDS = [
+    "apps.accounts.custom_backend.EmailBackend",              # email login (try first)
+    "django.contrib.auth.backends.ModelBackend",   # KEEP — Django admin still logs in by username
+]
